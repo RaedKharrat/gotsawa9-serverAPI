@@ -10,7 +10,7 @@ function parseCorsOrigins(): string[] {
     return process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
   }
   return [
-    'http://localhost:3000',
+    'gotsawa9.vercel.app',
     'http://localhost:3002',
     'http://localhost:3003',
   ];
