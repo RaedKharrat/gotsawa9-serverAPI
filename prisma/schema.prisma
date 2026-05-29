@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id          Int        @id @default(autoincrement())
+  name        Json       // { "en": "Electronics", "fr": "Electronique", "ar": "إلكترونيات" }
+  slug        String     @unique
+  imageUrl    String?
+  parentId    Int?
+  parent      Category?  @relation("Subcategories", fields: [parentId], references: [id])
+  children    Category[] @relation("Subcategories")
+  products    Product[]
+}
+
+model Brand {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  logoUrl   String?
+  slug      String   @unique
+  products  Product[]
+}
+
+model Product {
+  id                Int            @id @default(autoincrement())
+  title             Json           // multilingual titles
+  description       Json?
+  price             Decimal        @db.Decimal(10,2)
+  discountPrice     Decimal?       @db.Decimal(10,2)
+  stock             Int            @default(0)
+  isPublished       Boolean        @default(true)
+  slug              String         @unique
+  reference         String         @unique @default(dbgenerated("gen_random_uuid()"))
+  categoryId        Int
+  brandId           Int
+  category          Category       @relation(fields: [categoryId], references: [id])
+  brand             Brand          @relation(fields: [brandId], references: [id])
+  images            ProductImage[]
+  specs             Json?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  orderItems        OrderItem[]
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  url       String
+  isPrimary Boolean  @default(false)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Order {
+  id            Int          @id @default(autoincrement())
+  customerName  String
+  address       String
+  phone         String
+  email         String?
+  total         Decimal      @db.Decimal(10,2)
+  reference     String       @unique @default(dbgenerated("gen_random_uuid()"))
+  status        OrderStatus  @default(PENDING)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  items         OrderItem[]
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  quantity    Int      @default(1)
+  priceAtTime Decimal  @db.Decimal(10,2)
+  productId   Int
+  orderId     Int
+  product     Product  @relation(fields: [productId], references: [id])
+  order       Order    @relation(fields: [orderId], references: [id])
+}
+
+model Banner {
+  id        Int      @id @default(autoincrement())
+  title     String?
+  imageUrl  String
+  linkUrl   String?
+  isActive  Boolean  @default(true)
+  position  Int      @default(0)
+}
+
+model Promotion {
+  id          Int      @id @default(autoincrement())
+  title       String?
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+}
+
+enum PromoCodeType {
+  PERCENTAGE
+  FIXED
+}
+
+model PromoCode {
+  id          Int           @id @default(autoincrement())
+  code        String        @unique
+  type        PromoCodeType @default(PERCENTAGE)
+  value       Decimal       @db.Decimal(10, 2)
+  minOrder    Decimal?      @db.Decimal(10, 2)
+  maxUses     Int?
+  usedCount   Int           @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  isActive    Boolean       @default(true)
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Settings {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  label       String?
+  group       String?  @default("general")
+  updatedAt   DateTime @updatedAt
+}
