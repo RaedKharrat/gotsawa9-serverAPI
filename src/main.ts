@@ -6,14 +6,25 @@ import helmet from 'helmet';
 const LOCALHOST_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 function parseCorsOrigins(): string[] {
-  if (process.env.CORS_ORIGIN) {
-    return process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
+  const origins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
+    : [
+        'gotsawa9.vercel.app',
+        'http://localhost:3000',
+        'http://localhost:3002',
+        'http://localhost:3003',
+      ];
+
+  const normalized: string[] = [];
+  for (const o of origins) {
+    if (/^https?:\/\//.test(o)) {
+      normalized.push(o);
+    } else {
+      normalized.push(`http://${o}`);
+      normalized.push(`https://${o}`);
+    }
   }
-  return [
-    'gotsawa9.vercel.app',
-    'http://localhost:3002',
-    'http://localhost:3003',
-  ];
+  return normalized;
 }
 
 async function bootstrap() {
@@ -21,7 +32,6 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  const isProduction = process.env.NODE_ENV === 'production';
   const allowedOrigins = parseCorsOrigins();
 
   app.enableCors({
@@ -33,7 +43,7 @@ async function bootstrap() {
         callback(null, true);
         return;
       }
-      if (!isProduction && LOCALHOST_ORIGIN.test(origin)) {
+      if (LOCALHOST_ORIGIN.test(origin)) {
         callback(null, true);
         return;
       }
